@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:Jaid/read-permalink.git"
+    "url": "git+https://github.com/Jaid/read-permalink.git"
   },
   "scripts": {
     "test": "bun test --max-concurrency 1"
