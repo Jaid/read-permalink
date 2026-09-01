@@ -5,10 +5,10 @@
     "": {
       "name": "read-permalink",
       "devDependencies": {
-        "@types/bun": "^1.4.0",
-        "eslint": "^10.9.1",
-        "eslint-config-jaid": "^26.0.0",
-        "tsconfig-jaid-bun": "^16.0.0",
+        "@types/bun": "1.4.0",
+        "eslint": "10.9.1",
+        "eslint-config-jaid": "26.0.0",
+        "tsconfig-jaid-bun": "16.0.0",
         "typescript": "npm:typescript-classic@6.0.4",
       },
     },
