@@ -1,0 +1,16 @@
+# VS Code, based on https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Generated or temporary content
+/out/
+/dist/
+/temp/
+/private/
+
+# dotenv
+.env
