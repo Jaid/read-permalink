@@ -14,3 +14,7 @@
 
 # dotenv
 .env
+
+
+# Bun
+node_modules/

@@ -1,0 +1,28 @@
+{
+  "name": "read-permalink",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/main.ts"
+    }
+  },
+  "imports": {
+    "#src/*": "./src/*",
+    "#root/*": "./*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Jaid/read-permalink.git"
+  },
+  "scripts": {
+    "test": "bun test --max-concurrency 1"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "eslint": "^10.9.1",
+    "eslint-config-jaid": "^26.0.0",
+    "tsconfig-jaid-bun": "^16.0.0",
+    "typescript": "npm:typescript-classic@6.0.4"
+  }
+}
