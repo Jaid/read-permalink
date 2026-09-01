@@ -1,0 +1,24 @@
+name: publishPackage
+on:
+  push:
+    tags:
+      - v*
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+    - name: checkout
+      uses: actions/checkout@v6.0.2
+    - name: setupBun
+      uses: oven-sh/setup-bun@v2.2.0
+    - name: install
+      run: bun install --frozen-lockfile
+    - name: test
+      run: bun run test
+    - name: publish
+      run: bun publish
+      env:
+        NPM_CONFIG_TOKEN: ${{ secrets.npmToken }}
