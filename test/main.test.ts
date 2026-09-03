@@ -1,6 +1,6 @@
 import {expect, test} from 'bun:test'
 import {Buffer} from 'node:buffer'
-import {brotliCompressSync} from 'node:zlib'
+import {brotliCompressSync, gzipSync} from 'node:zlib'
 
 import readPermalink from '#src/main.ts'
 
@@ -40,6 +40,16 @@ test('decodes Brotli payloads through DecompressionStream', async () => {
   expect(await readPermalink(`https://example.com?data=j;br;base64=${payload}`)).toEqual({
     compressed: true,
     nested: {value: 42},
+  })
+})
+test('decodes gzip payloads through DecompressionStream', async () => {
+  const payload = Buffer.from(gzipSync(Buffer.from(JSON.stringify({
+    compressed: true,
+    format: 'gzip',
+  })))).toString('base64url')
+  expect(await readPermalink(`https://example.com?data=j;gz;base64=${payload}`)).toEqual({
+    compressed: true,
+    format: 'gzip',
   })
 })
 test('supports an explicit result shape', async () => {
