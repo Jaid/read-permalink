@@ -26,5 +26,8 @@
     "typescript": "npm:typescript-classic@6.0.4"
   },
   "funding": "https://github.com/sponsors/Jaid",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "from-base64": "0.1.0"
+  }
 }
