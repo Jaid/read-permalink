@@ -2,6 +2,12 @@
   "name": "read-permalink",
   "version": "0.1.0",
   "type": "module",
+  "funding": "https://github.com/sponsors/Jaid",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jaid/read-permalink.git"
+  },
   "exports": {
     ".": {
       "default": "./src/main.ts"
@@ -11,12 +17,11 @@
     "#src/*": "./src/*",
     "#root/*": "./*"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Jaid/read-permalink.git"
-  },
   "scripts": {
     "test": "bun test --max-concurrency 1 ./test"
+  },
+  "dependencies": {
+    "from-base64": "0.1.0"
   },
   "devDependencies": {
     "@types/bun": "1.4.0",
@@ -24,10 +29,5 @@
     "eslint-config-jaid": "26.0.0",
     "tsconfig-jaid-bun": "16.0.0",
     "typescript": "npm:typescript-classic@6.0.4"
-  },
-  "funding": "https://github.com/sponsors/Jaid",
-  "license": "MIT",
-  "dependencies": {
-    "from-base64": "0.1.0"
   }
 }
