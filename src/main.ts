@@ -1,88 +1,91 @@
-import getEngines, {isEngineDescriptor} from '#src/getEngines.ts'
+import type {PermalinkState, StateSourceOption} from './State.ts'
 
-type PermalinkState = Record<string, unknown>
+import State from './State.ts'
+
+export type ReadPermalinkOptions = {
+  format?: 'plain' | 'state'
+  fragment?: StateSourceOption
+  query?: StateSourceOption
+  sync?: boolean
+}
 type Input = URL | string
+type ReadPermalinkAsyncPlainOptions = ReadPermalinkOptions & {
+  format?: 'plain'
+  sync?: false
+}
+type ReadPermalinkAsyncStateOptions = ReadPermalinkOptions & {
+  format: 'state'
+  sync?: false
+}
+type ReadPermalinkSyncPlainOptions = ReadPermalinkOptions & {
+  format?: 'plain'
+  sync: true
+}
+type ReadPermalinkSyncStateOptions = ReadPermalinkOptions & {
+  format: 'state'
+  sync: true
+}
+type ResolvedInput = {
+  literal: string
+  url: URL
+}
 
-const decodeComponent = (value: string, plusAsSpace = false) => {
-  return decodeURIComponent(plusAsSpace ? value.replaceAll('+', ' ') : value)
-}
-const splitOnce = (value: string, separator: string) => {
-  const index = value.indexOf(separator)
-  if (index === -1) {
-    return [value, undefined] as const
-  }
-  return [value.slice(0, index), value.slice(index + separator.length)] as const
-}
-const setStateValue = (state: PermalinkState, key: string, value: unknown) => {
-  Object.defineProperty(state, key, {
-    configurable: true,
-    enumerable: true,
-    value,
-    writable: true,
-  })
-}
-const applyPatch = (state: PermalinkState, patch: PermalinkState) => {
-  for (const [key, value] of Object.entries(patch)) {
-    setStateValue(state, key, value)
-  }
-}
-const decodeData = async (value: string): Promise<PermalinkState> => {
-  const [possibleDescriptor, possiblePayload] = splitOnce(value, '=')
-  const hasDescriptor = possiblePayload !== undefined && isEngineDescriptor(possibleDescriptor)
-  const engines = getEngines(hasDescriptor ? possibleDescriptor : '')
-  const payload = hasDescriptor ? possiblePayload : value
-  const encoded = engines.encoding.decode(payload)
-  const decompressed = await engines.compression.decode(encoded)
-  const decoded = engines.serialization.decode(decompressed)
-  if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) {
-    throw new TypeError('Permalink data payload must decode to an object.')
-  }
-  return decoded as PermalinkState
-}
-const getUrl = (input?: Input) => {
+const resolveInput = (input?: Input): ResolvedInput => {
   if (input instanceof URL) {
-    return input
+    return {
+      literal: input.href,
+      url: input,
+    }
   }
   const browserLocation = (globalThis as typeof globalThis & {location?: {href: string}}).location
   if (input === undefined) {
     if (!browserLocation) {
       throw new TypeError('readPermalink() isn’t running in a browser and thus needs an input URL')
     }
-    return new URL(browserLocation.href)
-  }
-  return new URL(input, browserLocation?.href ?? 'http://localhost')
-}
-const applyQuery = async (state: PermalinkState, search: string) => {
-  const query = search.startsWith('?') ? search.slice(1) : search
-  if (!query) {
-    return
-  }
-  for (const entry of query.split('&')) {
-    if (!entry) {
-      continue
+    return {
+      literal: browserLocation.href,
+      url: new URL(browserLocation.href),
     }
-    const [rawKey, rawValue = ''] = splitOnce(entry, '=')
-    const key = decodeComponent(rawKey, true)
-    if (key === 'data') {
-      applyPatch(state, await decodeData(decodeComponent(rawValue)))
-      continue
-    }
-    setStateValue(state, key, decodeComponent(rawValue, true))
+  }
+  return {
+    literal: input,
+    url: new URL(input, browserLocation?.href ?? 'http://localhost'),
   }
 }
-const applyHash = async (state: PermalinkState, hash: string) => {
-  const fragment = hash.startsWith('#') ? hash.slice(1) : hash
-  if (!fragment.startsWith('data:')) {
-    return
-  }
-  applyPatch(state, await decodeData(decodeComponent(fragment.slice('data:'.length))))
+const readPermalinkSync = <ShapeGeneric extends object>(input: ResolvedInput, options: ReadPermalinkOptions) => {
+  const state = new State<ShapeGeneric>(input.literal)
+  state.applyQuery(input.url.search, options.query ?? true)
+  state.applyFragment(input.url.hash, options.fragment ?? true)
+  return state
 }
-const readPermalink = async <ShapeGeneric extends object = PermalinkState>(input?: Input): Promise<ShapeGeneric> => {
-  const url = getUrl(input)
-  const state: PermalinkState = {}
-  await applyQuery(state, url.search)
-  await applyHash(state, url.hash)
-  return state as ShapeGeneric
+const readPermalinkAsync = async <ShapeGeneric extends object>(input: ResolvedInput, options: ReadPermalinkOptions) => {
+  const state = new State<ShapeGeneric>(input.literal)
+  await state.applyQueryAsync(input.url.search, options.query ?? true)
+  await state.applyFragmentAsync(input.url.hash, options.fragment ?? true)
+  return state
+}
+const formatState = <ShapeGeneric extends object>(state: State<ShapeGeneric>, format: ReadPermalinkOptions['format']) => {
+  return format === 'state' ? state : state.value
+}
+const formatStateAsync = async <ShapeGeneric extends object>(state: Promise<State<ShapeGeneric>>, format: ReadPermalinkOptions['format']) => {
+  return formatState(await state, format)
+}
+// The caller-provided shape intentionally narrows the decoded object.
+function readPermalink<ShapeGeneric extends object = PermalinkState>(input: Input | undefined, options: ReadPermalinkSyncStateOptions): State<ShapeGeneric>
+// The caller-provided shape intentionally narrows the decoded object.
+// eslint-disable-next-line typescript/no-unnecessary-type-parameters
+function readPermalink<ShapeGeneric extends object = PermalinkState>(input: Input | undefined, options: ReadPermalinkSyncPlainOptions): ShapeGeneric
+// The caller-provided shape intentionally narrows the decoded object.
+function readPermalink<ShapeGeneric extends object = PermalinkState>(input: Input | undefined, options: ReadPermalinkAsyncStateOptions): Promise<State<ShapeGeneric>>
+function readPermalink<ShapeGeneric extends object = PermalinkState>(input?: Input, options?: ReadPermalinkAsyncPlainOptions): Promise<ShapeGeneric>
+function readPermalink<ShapeGeneric extends object = PermalinkState>(input: Input | undefined, options: ReadPermalinkOptions): Promise<ShapeGeneric | State<ShapeGeneric>> | ShapeGeneric | State<ShapeGeneric>
+function readPermalink<ShapeGeneric extends object = PermalinkState>(input?: Input, options: ReadPermalinkOptions = {}): Promise<ShapeGeneric | State<ShapeGeneric>> | ShapeGeneric | State<ShapeGeneric> {
+  const resolvedInput = resolveInput(input)
+  if (options.sync) {
+    return formatState(readPermalinkSync<ShapeGeneric>(resolvedInput, options), options.format)
+  }
+  return formatStateAsync(readPermalinkAsync<ShapeGeneric>(resolvedInput, options), options.format)
 }
 
+export {default as State} from './State.ts'
 export default readPermalink

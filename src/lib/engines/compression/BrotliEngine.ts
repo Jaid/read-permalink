@@ -1,11 +1,12 @@
-import FallbackDecompressionStreamEngine from './base/FallbackDecompressionStreamEngine.ts'
+import decodeBrotli from 'decode-brotli'
 
-export default class BrotliEngine extends FallbackDecompressionStreamEngine {
+import DecompressionStreamEngine from './base/DecompressionStreamEngine.ts'
+
+export default class BrotliEngine extends DecompressionStreamEngine {
   readonly aliases = new Set(['b', 'br', 'brotli'])
   readonly format = 'brotli'
 
-  protected async decodeFallback(input: Uint8Array) {
-    const {default: decodeBrotli} = await import('decode-brotli')
+  decode(input: Uint8Array) {
     return decodeBrotli(input)
   }
 }

@@ -1,11 +1,12 @@
-import FallbackDecompressionStreamEngine from './base/FallbackDecompressionStreamEngine.ts'
+import decodeZstd from 'decode-zstd'
 
-export default class ZstdEngine extends FallbackDecompressionStreamEngine {
+import DecompressionStreamEngine from './base/DecompressionStreamEngine.ts'
+
+export default class ZstdEngine extends DecompressionStreamEngine {
   readonly aliases = new Set(['z', 'zst', 'zstd', 'zstandard'])
   readonly format = 'zstd'
 
-  protected async decodeFallback(input: Uint8Array) {
-    const {default: decodeZstd} = await import('decode-zstd')
+  decode(input: Uint8Array) {
     return decodeZstd(input)
   }
 }

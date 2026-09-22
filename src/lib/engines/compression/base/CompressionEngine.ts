@@ -1,5 +1,9 @@
 import Engine from '../../base/Engine.ts'
 
 export default abstract class CompressionEngine extends Engine {
-  abstract decode(input: Uint8Array): Promise<Uint8Array> | Uint8Array
+  abstract decode(input: Uint8Array): Uint8Array
+
+  decodeAsync(input: Uint8Array): Promise<Uint8Array> | Uint8Array {
+    return this.decode(input)
+  }
 }

@@ -7,6 +7,7 @@
       "dependencies": {
         "decode-brotli": "0.1.0",
         "decode-zstd": "0.1.0",
+        "fflate": "0.8.3",
         "from-base64": "0.1.0",
       },
       "devDependencies": {
@@ -417,6 +418,8 @@
     "fdir": ["fdir@6.5.0", "", { "peerDependencies": { "picomatch": "^3 || ^4" }, "optionalPeers": ["picomatch"] }, "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg=="],
 
     "fencen": ["fencen@0.1.0", "", {}, "sha512-q9/jZutNY0bApCG/kJThozCLfxYJqb+j30Ie0uB/37sDoz+dpQuUjzCSNKfkodEySpLr3x/rQnGHFrmv8233Sg=="],
+
+    "fflate": ["fflate@0.8.3", "", {}, "sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA=="],
 
     "file-entry-cache": ["file-entry-cache@11.1.5", "", { "dependencies": { "flat-cache": "^6.1.23" } }, "sha512-+PFTHITI08JIGhnNpGNI8T8inUpgZfk3GNEqfT9R2zZV2iFXg3CvqzSl/uEhs7TSGujYRELEANyDvS8Fj7+S7Q=="],
 

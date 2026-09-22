@@ -12,6 +12,10 @@ test('uses default engine instances when omitted', () => {
     serialization: defaultSerializationEngine,
   })
 })
+test('default decodeAsync forwards to decode', () => {
+  const input = new Uint8Array([1, 2, 3])
+  expect(defaultCompressionEngine.decodeAsync(input)).toBe(input)
+})
 test('resolves aliases to registered engines', () => {
   for (const descriptor of ['j', 'json', 'application/json', 'json;base64', 'application/json;base64']) {
     const engines = getEngines(descriptor)
@@ -64,7 +68,7 @@ test('recognizes complete descriptors', () => {
   expect(isEngineDescriptor('json;lzma;base64')).toBeTrue()
   expect(isEngineDescriptor('application/yaml;lzma;base64')).toBeTrue()
 })
-test('throws when unimplemented engines are used', async () => {
+test('throws when unimplemented engines are used', () => {
   const lzma = getEngines('l').compression
   const yaml = getEngines('y').serialization
   expect(() => lzma.decode(new Uint8Array)).toThrow('LZMA decompression is not implemented yet.')
