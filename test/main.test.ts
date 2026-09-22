@@ -164,10 +164,10 @@ test('accepts relative URLs and URL instances', async () => {
   expect(await readPermalink('?a=1')).toEqual({a: '1'})
   expect(await readPermalink(new URL('https://example.com/?a=2'))).toEqual({a: '2'})
 })
-test('rejects non-object JSON data payloads', async () => {
-  await expect(readPermalink(`https://example.com?data=${encode([1, 2, 3])}`)).rejects.toThrow(TypeError)
-  await expect(readPermalink(`https://example.com?data=${encode('value')}`)).rejects.toThrow(TypeError)
-  await expect(readPermalink(`https://example.com?data=${encode(null)}`)).rejects.toThrow(TypeError)
+test('rejects non-object JSON data payloads', () => {
+  expect(readPermalink(`https://example.com?data=${encode([1, 2, 3])}`)).rejects.toThrow(TypeError)
+  expect(readPermalink(`https://example.com?data=${encode('value')}`)).rejects.toThrow(TypeError)
+  expect(readPermalink(`https://example.com?data=${encode(null)}`)).rejects.toThrow(TypeError)
 })
 test('does not allow URL state to mutate the result prototype', async () => {
   const payload = encodeBytes(Buffer.from('{"__proto__":{"polluted":true},"safe":1}'))
