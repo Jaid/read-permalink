@@ -22,6 +22,8 @@
     "test": "bun test --max-concurrency 1 ./test"
   },
   "dependencies": {
+    "decode-brotli": "0.1.0",
+    "decode-zstd": "0.1.0",
     "from-base64": "0.1.0"
   },
   "devDependencies": {

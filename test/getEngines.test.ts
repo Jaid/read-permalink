@@ -33,6 +33,13 @@ test('resolves aliases to registered engines', () => {
   for (const descriptor of ['g', 'gz', 'gzip', 'j;g', 'json;gzip;base64']) {
     expect(getEngines(descriptor).compression).toBe(gzipEngine)
   }
+  const zstdEngine = compressionEngines.find(engine => engine.matches('zstd'))
+  if (!zstdEngine) {
+    throw new Error('zstd engine is not registered.')
+  }
+  for (const descriptor of ['z', 'zst', 'zstd', 'zstandard', 'j;z', 'json;zstd;base64']) {
+    expect(getEngines(descriptor).compression).toBe(zstdEngine)
+  }
   const lzmaEngine = compressionEngines.find(engine => engine.matches('lzma'))
   const yamlEngine = serializationEngines.find(engine => engine.matches('yaml'))
   if (!lzmaEngine || !yamlEngine) {
@@ -51,6 +58,7 @@ test('normalizes whitespace and casing', () => {
 test('recognizes complete descriptors', () => {
   expect(isEngineDescriptor('application/json;br;base64')).toBeTrue()
   expect(isEngineDescriptor('application/json;gzip;base64')).toBeTrue()
+  expect(isEngineDescriptor('application/json;zstd;base64')).toBeTrue()
   expect(isEngineDescriptor('j')).toBeTrue()
   expect(isEngineDescriptor('')).toBeFalse()
   expect(isEngineDescriptor('json;lzma;base64')).toBeTrue()

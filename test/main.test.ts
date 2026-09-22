@@ -7,6 +7,10 @@ import readPermalink from '#src/main.ts'
 const encode = (value: unknown, encoding: BufferEncoding = 'base64url') => {
   return Buffer.from(JSON.stringify(value)).toString(encoding)
 }
+const encodeBytes = (value: Uint8Array) => value.toBase64({
+  alphabet: 'base64url',
+  omitPadding: true,
+})
 test('reads named query parameters as strings', async () => {
   expect(await readPermalink('https://example.com?a=1&b=hello+world&empty=')).toEqual({
     a: '1',
@@ -32,25 +36,66 @@ test('accepts JSON descriptor aliases', async () => {
     expect(await readPermalink(`https://example.com?data=${descriptor}=${payload}`)).toEqual({a: 1})
   }
 })
-test('decodes Brotli payloads through DecompressionStream', async () => {
-  const payload = Buffer.from(brotliCompressSync(Buffer.from(JSON.stringify({
+test('decodes Brotli payloads', async () => {
+  const payload = encodeBytes(brotliCompressSync(Buffer.from(JSON.stringify({
     compressed: true,
     nested: {value: 42},
-  })))).toString('base64url')
+  }))))
   expect(await readPermalink(`https://example.com?data=j;br;base64=${payload}`)).toEqual({
     compressed: true,
     nested: {value: 42},
   })
 })
 test('decodes gzip payloads through DecompressionStream', async () => {
-  const payload = Buffer.from(gzipSync(Buffer.from(JSON.stringify({
+  const payload = encodeBytes(gzipSync(Buffer.from(JSON.stringify({
     compressed: true,
     format: 'gzip',
-  })))).toString('base64url')
+  }))))
   expect(await readPermalink(`https://example.com?data=j;gz;base64=${payload}`)).toEqual({
     compressed: true,
     format: 'gzip',
   })
+})
+test('decodes zstd payloads', async () => {
+  const payload = encodeBytes(Bun.zstdCompressSync(Buffer.from(JSON.stringify({
+    compressed: true,
+    format: 'zstd',
+  }))))
+  expect(await readPermalink(`https://example.com?data=j;zstd;base64=${payload}`)).toEqual({
+    compressed: true,
+    format: 'zstd',
+  })
+})
+test('falls back to JavaScript Brotli and zstd decoders', async () => {
+  const brotliPayload = encodeBytes(brotliCompressSync(Buffer.from(JSON.stringify({
+    fallback: 'brotli',
+  }))))
+  const zstdPayload = encodeBytes(Bun.zstdCompressSync(Buffer.from(JSON.stringify({
+    fallback: 'zstd',
+  }))))
+  const nativeDecompressionStream = Object.getOwnPropertyDescriptor(globalThis, 'DecompressionStream')
+  Object.defineProperty(globalThis, 'DecompressionStream', {
+    configurable: true,
+    value: class {
+      constructor() {
+        throw new Error('Native decompression unavailable.')
+      }
+    },
+  })
+  try {
+    expect(await readPermalink(`https://example.com?data=j;br;base64=${brotliPayload}`)).toEqual({
+      fallback: 'brotli',
+    })
+    expect(await readPermalink(`https://example.com?data=j;zstd;base64=${zstdPayload}`)).toEqual({
+      fallback: 'zstd',
+    })
+  } finally {
+    if (nativeDecompressionStream) {
+      Object.defineProperty(globalThis, 'DecompressionStream', nativeDecompressionStream)
+    } else {
+      delete (globalThis as {DecompressionStream?: unknown}).DecompressionStream
+    }
+  }
 })
 test('supports an explicit result shape', async () => {
   type Shape = {
@@ -125,7 +170,7 @@ test('rejects non-object JSON data payloads', async () => {
   await expect(readPermalink(`https://example.com?data=${encode(null)}`)).rejects.toThrow(TypeError)
 })
 test('does not allow URL state to mutate the result prototype', async () => {
-  const payload = Buffer.from('{"__proto__":{"polluted":true},"safe":1}').toString('base64url')
+  const payload = encodeBytes(Buffer.from('{"__proto__":{"polluted":true},"safe":1}'))
   const result = await readPermalink(`https://example.com?__proto__=named&data=${payload}`)
   expect(Object.getPrototypeOf(result)).toBe(Object.prototype)
   expect(Object.hasOwn(result, '__proto__')).toBeTrue()
