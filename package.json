@@ -18,6 +18,7 @@
     "#root/*": "./*"
   },
   "scripts": {
+    "build": "build_lib --terser-strength max",
     "test": "bun test --max-concurrency 1 ./test"
   },
   "dependencies": {
