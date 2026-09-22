@@ -1,0 +1,6 @@
+- reads ordinary query parameters and packed permalink state into one plain object
+- deterministic left-to-right query merging, with `#data:` fragment state applied last
+- descriptor-selected JSON, compression and Base64 decoding pipeline
+- native-first Brotli and zstd decompression with JavaScript fallbacks
+- Base64 and Base64URL support
+- browser-friendly API that can default to the current URL

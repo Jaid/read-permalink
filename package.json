@@ -2,6 +2,7 @@
   "name": "read-permalink",
   "version": "0.1.0",
   "type": "module",
+  "description": "read URL search parameters and packed state from permalinks",
   "funding": "https://github.com/sponsors/Jaid",
   "license": "MIT",
   "repository": {
@@ -18,7 +19,8 @@
     "#root/*": "./*"
   },
   "scripts": {
-    "build": "build_lib --terser-strength max",
+    "build": "bun run readme && build_lib --terser-strength max",
+    "readme": "bun tldw",
     "test": "bun test --max-concurrency 1 ./test"
   },
   "dependencies": {
@@ -27,10 +29,11 @@
     "from-base64": "0.1.0"
   },
   "devDependencies": {
+    "@types/bun": "1.4.2",
     "eslint": "10.11.0",
     "eslint-config-jaid": "34.0.0",
+    "tldw": "9.7.0",
     "tsconfig-jaid-bun": "16.0.0",
-    "typescript": "npm:typescript-classic@6.0.4",
-    "@types/bun": "1.4.2"
+    "typescript": "npm:typescript-classic@6.0.4"
   }
 }
