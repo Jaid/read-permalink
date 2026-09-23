@@ -101,7 +101,7 @@ state.getConsumedInput()
 
 ## consume and discard URL state
 
-In a browser, request `format: 'state'`, consume the values you need, then navigate to the remaining input to discard the values that were handled:
+In a browser, request `format: 'state'`, consume the values you need, then replace the current history entry with the remaining input to discard the values that were handled without reloading the page:
 
 ```ts
 const state = await readPermalink<{
@@ -116,11 +116,11 @@ const settings = state.value.settings
 const remainingInput = state.getConsumedInput()
 
 if (remainingInput !== state.getInput()) {
-  window.location.href = remainingInput
+  window.history.replaceState(null, '', remainingInput)
 }
 ```
 
-After the navigation, the consumed query/hash state is gone from the address bar. Disabled or unrelated sources remain because they were not consumed.
+The consumed query/hash state is removed from the address bar without reloading the page or adding another browser-history entry. Disabled or unrelated sources remain because they were not consumed.
 
 `State` also accepts an optional input string in its constructor when it is used directly and input tracking is desired.
 
