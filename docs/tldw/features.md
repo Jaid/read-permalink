@@ -1,6 +1,8 @@
 - asynchronous native-first permalink parsing by default, with an opt-in synchronous mode
 - one `readPermalink` API whose return type follows the `sync` and `format` options
-- optional `State<Shape>` results for incremental state manipulation
+- Optis runtime schemas with defaults, required keys, normalizations and inferred result types
+- strict `parseBoolean` and finite `parseNumber` helpers for URL normalization
+- optional schema-aware `State` results for incremental state manipulation
 - reads ordinary query parameters and packed permalink state into one plain object
 - deterministic left-to-right query merging, with packed fragment state applied last
 - descriptor-selected JSON, compression and Base64 decoding pipeline

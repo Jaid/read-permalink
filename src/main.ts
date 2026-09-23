@@ -1,30 +1,49 @@
-import type {PermalinkState, StateSourceOption} from './State.ts'
+import type {StateSourceOption, StateValue} from './State.ts'
+import type {OptisSchema} from 'optis'
 
 import State from './State.ts'
 
-export type ReadPermalinkOptions = {
-  format?: 'plain' | 'state'
+export type ReadPermalinkOptions<SchemaGeneric extends OptisSchema | undefined = undefined> = ReadPermalinkBaseOptions & {
+  format?: ResultFormat
+  sync?: boolean
+} & (SchemaGeneric extends OptisSchema ? {
+  /** Processes the final merged URL state with Optis defaults, required keys and normalizations. */
+  schema: SchemaGeneric
+} : {
+  schema?: undefined
+})
+type Input = URL | string
+type ResultFormat = 'plain' | 'state'
+type ReadPermalinkBaseOptions = {
   fragment?: StateSourceOption
   query?: StateSourceOption
-  sync?: boolean
 }
-type Input = URL | string
-type ReadPermalinkAsyncPlainOptions = ReadPermalinkOptions & {
-  format?: 'plain'
-  sync?: false
+type ReadPermalinkCallOptions<
+  SchemaGeneric extends OptisSchema | undefined,
+  SyncGeneric extends boolean | undefined,
+  FormatGeneric extends ResultFormat | undefined,
+> = ReadPermalinkBaseOptions & {
+  format?: FormatGeneric
+  schema?: SchemaGeneric
+  sync?: SyncGeneric
 }
-type ReadPermalinkAsyncStateOptions = ReadPermalinkOptions & {
-  format: 'state'
-  sync?: false
-}
-type ReadPermalinkSyncPlainOptions = ReadPermalinkOptions & {
-  format?: 'plain'
-  sync: true
-}
-type ReadPermalinkSyncStateOptions = ReadPermalinkOptions & {
-  format: 'state'
-  sync: true
-}
+type ReadPermalinkFormattedResult<
+  SchemaGeneric extends OptisSchema | undefined,
+  FormatGeneric extends ResultFormat | undefined,
+> = FormatGeneric extends 'state'
+  ? State<SchemaGeneric>
+  : FormatGeneric extends 'plain' | undefined
+    ? StateValue<SchemaGeneric>
+    : State<SchemaGeneric> | StateValue<SchemaGeneric>
+type ReadPermalinkResult<
+  SchemaGeneric extends OptisSchema | undefined,
+  SyncGeneric extends boolean | undefined,
+  FormatGeneric extends ResultFormat | undefined,
+> = SyncGeneric extends true
+  ? ReadPermalinkFormattedResult<SchemaGeneric, FormatGeneric>
+  : SyncGeneric extends false | undefined
+    ? Promise<ReadPermalinkFormattedResult<SchemaGeneric, FormatGeneric>>
+    : Promise<ReadPermalinkFormattedResult<SchemaGeneric, FormatGeneric>> | ReadPermalinkFormattedResult<SchemaGeneric, FormatGeneric>
 type ResolvedInput = {
   literal: string
   url: URL
@@ -52,40 +71,34 @@ const resolveInput = (input?: Input): ResolvedInput => {
     url: new URL(input, browserLocation?.href ?? 'http://localhost'),
   }
 }
-const readPermalinkSync = <ShapeGeneric extends object>(input: ResolvedInput, options: ReadPermalinkOptions) => {
-  const state = new State<ShapeGeneric>(input.literal)
-  state.applyQuery(input.url.search, options.query ?? true)
-  state.applyFragment(input.url.hash, options.fragment ?? true)
-  return state
+const formatState = <SchemaGeneric extends OptisSchema | undefined>(state: State<SchemaGeneric>, format: ResultFormat | undefined) => {
+  const value = state.value
+  return format === 'state' ? state : value
 }
-const readPermalinkAsync = async <ShapeGeneric extends object>(input: ResolvedInput, options: ReadPermalinkOptions) => {
-  const state = new State<ShapeGeneric>(input.literal)
-  await state.applyQueryAsync(input.url.search, options.query ?? true)
-  await state.applyFragmentAsync(input.url.hash, options.fragment ?? true)
-  return state
-}
-const formatState = <ShapeGeneric extends object>(state: State<ShapeGeneric>, format: ReadPermalinkOptions['format']) => {
-  return format === 'state' ? state : state.value
-}
-const formatStateAsync = async <ShapeGeneric extends object>(state: Promise<State<ShapeGeneric>>, format: ReadPermalinkOptions['format']) => {
-  return formatState(await state, format)
-}
-// The caller-provided shape intentionally narrows the decoded object.
-function readPermalink<ShapeGeneric extends object = PermalinkState>(input: Input | undefined, options: ReadPermalinkSyncStateOptions): State<ShapeGeneric>
-// The caller-provided shape intentionally narrows the decoded object.
-// eslint-disable-next-line typescript/no-unnecessary-type-parameters
-function readPermalink<ShapeGeneric extends object = PermalinkState>(input: Input | undefined, options: ReadPermalinkSyncPlainOptions): ShapeGeneric
-// The caller-provided shape intentionally narrows the decoded object.
-function readPermalink<ShapeGeneric extends object = PermalinkState>(input: Input | undefined, options: ReadPermalinkAsyncStateOptions): Promise<State<ShapeGeneric>>
-function readPermalink<ShapeGeneric extends object = PermalinkState>(input?: Input, options?: ReadPermalinkAsyncPlainOptions): Promise<ShapeGeneric>
-function readPermalink<ShapeGeneric extends object = PermalinkState>(input: Input | undefined, options: ReadPermalinkOptions): Promise<ShapeGeneric | State<ShapeGeneric>> | ShapeGeneric | State<ShapeGeneric>
-function readPermalink<ShapeGeneric extends object = PermalinkState>(input?: Input, options: ReadPermalinkOptions = {}): Promise<ShapeGeneric | State<ShapeGeneric>> | ShapeGeneric | State<ShapeGeneric> {
+function readPermalink<
+  const SyncGeneric extends boolean | undefined = undefined,
+  const FormatGeneric extends ResultFormat | undefined = undefined,
+  SchemaGeneric extends OptisSchema | undefined = undefined,
+>(
+  input?: Input,
+  options?: ReadPermalinkCallOptions<SchemaGeneric, SyncGeneric, FormatGeneric>,
+): ReadPermalinkResult<SchemaGeneric, SyncGeneric, FormatGeneric> {
   const resolvedInput = resolveInput(input)
-  if (options.sync) {
-    return formatState(readPermalinkSync<ShapeGeneric>(resolvedInput, options), options.format)
+  const state = new State<SchemaGeneric>(resolvedInput.literal, options?.schema)
+  if (options?.sync) {
+    state.applyQuery(resolvedInput.url.search, options.query ?? true)
+    state.applyFragment(resolvedInput.url.hash, options.fragment ?? true)
+    return formatState(state, options.format) as ReadPermalinkResult<SchemaGeneric, SyncGeneric, FormatGeneric>
   }
-  return formatStateAsync(readPermalinkAsync<ShapeGeneric>(resolvedInput, options), options.format)
+  return (async () => {
+    await state.applyQueryAsync(resolvedInput.url.search, options?.query ?? true)
+    await state.applyFragmentAsync(resolvedInput.url.hash, options?.fragment ?? true)
+    return formatState(state, options?.format)
+  })() as ReadPermalinkResult<SchemaGeneric, SyncGeneric, FormatGeneric>
 }
 
-export {default as State} from './State.ts'
 export default readPermalink
+
+export {parseBoolean, parseNumber} from './parsers.ts'
+
+export {default as State} from './State.ts'

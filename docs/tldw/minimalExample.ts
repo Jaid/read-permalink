@@ -1,6 +1,12 @@
-import readPermalink from 'read-permalink'
+import optis from 'optis'
+import readPermalink, {parseNumber} from 'read-permalink'
 
-const state = await readPermalink('?tab=details&data=eyJzZXR0aW5ncyI6eyJ0aGVtZSI6ImRhcmsifX0')
+const schema = optis({
+  defaults: {page: 1},
+  normalizations: {page: parseNumber},
+})
+const state = await readPermalink('?page=3', {schema})
 
-// {tab: 'details', settings: {theme: 'dark'}}
+// Inferred as {page: number}, with a number at runtime too.
 console.log(state)
+// {page: 3}

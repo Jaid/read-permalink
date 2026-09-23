@@ -45,30 +45,24 @@ test('sync option controls the return type and runtime mode', async () => {
   expect(await asyncResult).toEqual({a: '1'})
 })
 test('format option controls plain versus State results', async () => {
-  type Shape = {
-    a: string
-  }
-  const syncState: State<Shape> = readPermalink<Shape>('https://example.com?a=1', {
+  const syncState = readPermalink('https://example.com?a=1', {
     format: 'state',
     sync: true,
   })
-  const asyncStatePromise: Promise<State<Shape>> = readPermalink<Shape>('https://example.com?a=1', {
+  const asyncState = await readPermalink('https://example.com?a=1', {
     format: 'state',
   })
-  const asyncState = await asyncStatePromise
   expect(syncState).toBeInstanceOf(State)
   expect(syncState.value).toEqual({a: '1'})
   expect(asyncState).toBeInstanceOf(State)
   expect(asyncState.value).toEqual({a: '1'})
-  const syncPlain: Shape = readPermalink<Shape>('https://example.com?a=1', {
+  expect(readPermalink('https://example.com?a=1', {
     format: 'plain',
     sync: true,
-  })
-  const asyncPlain: Promise<Shape> = readPermalink<Shape>('https://example.com?a=1', {
+  })).toEqual({a: '1'})
+  expect(await readPermalink('https://example.com?a=1', {
     format: 'plain',
-  })
-  expect(syncPlain).toEqual({a: '1'})
-  expect(await asyncPlain).toEqual({a: '1'})
+  })).toEqual({a: '1'})
 })
 test('State tracks literal and consumed input', () => {
   const payload = encode({fromFragment: true})
@@ -230,28 +224,6 @@ test('default async mode falls back to synchronous decoders when native decompre
       delete (globalThis as {DecompressionStream?: unknown}).DecompressionStream
     }
   }
-})
-test('supports explicit sync and async result shapes', async () => {
-  type Shape = {
-    count: number
-    label: string
-  }
-  const payload = encode({
-    count: 2,
-    label: 'hello',
-  })
-  const syncResult: Shape = readPermalink<Shape>(`https://example.com?data=${payload}`, {sync: true})
-  const asyncResultPromise: Promise<Shape> = readPermalink<Shape>(`https://example.com?data=${payload}`)
-  const asyncResult = await asyncResultPromise
-  const count: number = syncResult.count
-  const label: string = asyncResult.label
-  expect({
-    count,
-    label,
-  }).toEqual({
-    count: 2,
-    label: 'hello',
-  })
 })
 test('preserves literal plus signs in standard Base64 data', () => {
   const payload = encode({value: '¾'}, 'base64')

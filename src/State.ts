@@ -1,7 +1,11 @@
+import type {OptisProcessed, OptisSchema} from 'optis'
+
 import getEngines, {isEngineDescriptor} from './getEngines.ts'
 
 export type PermalinkState = Record<string, unknown>
+export type StateValue<SchemaGeneric extends OptisSchema | undefined> = SchemaGeneric extends OptisSchema ? OptisProcessed<SchemaGeneric> : PermalinkState
 export type StateSourceOption = boolean | string
+type StatePatch = PermalinkState
 
 const decodeComponent = (value: string, plusAsSpace = false) => {
   return decodeURIComponent(plusAsSpace ? value.replaceAll('+', ' ') : value)
@@ -57,18 +61,28 @@ const removeQuery = (input: string) => {
   return queryIndex === -1 ? input : beforeFragment.slice(0, queryIndex) + fragment
 }
 
-export default class State<ShapeGeneric extends object = PermalinkState> {
-  readonly value = {} as ShapeGeneric
-
+export default class State<SchemaGeneric extends OptisSchema | undefined = undefined> {
   private consumedFragment = false
   private consumedQuery = false
   private readonly input: string
+  private processed: StateValue<SchemaGeneric> | undefined
+  private readonly raw: PermalinkState = {}
+  private readonly schema: SchemaGeneric | undefined
 
-  constructor(input = '') {
+  constructor(input = '', schema?: SchemaGeneric) {
     this.input = input
+    this.schema = schema
   }
 
-  apply(patch: Partial<ShapeGeneric>) {
+  get value(): StateValue<SchemaGeneric> {
+    if (!this.schema) {
+      return this.raw as StateValue<SchemaGeneric>
+    }
+    // Keep raw values separate so non-idempotent normalizations never compound.
+    return this.processed ??= this.schema.process({...this.raw}) as StateValue<SchemaGeneric>
+  }
+
+  apply(patch: StatePatch) {
     for (const [key, value] of Object.entries(patch)) {
       this.set(key, value)
     }
@@ -83,7 +97,7 @@ export default class State<ShapeGeneric extends object = PermalinkState> {
     const fragment = hash.startsWith('#') ? hash.slice(1) : hash
     const prefix = `${key}:`
     if (fragment.startsWith(prefix)) {
-      this.apply(decodeData(decodeComponent(fragment.slice(prefix.length))) as Partial<ShapeGeneric>)
+      this.apply(decodeData(decodeComponent(fragment.slice(prefix.length))))
       this.consumedFragment = true
     }
     return this
@@ -97,7 +111,7 @@ export default class State<ShapeGeneric extends object = PermalinkState> {
     const fragment = hash.startsWith('#') ? hash.slice(1) : hash
     const prefix = `${key}:`
     if (fragment.startsWith(prefix)) {
-      this.apply(await decodeDataAsync(decodeComponent(fragment.slice(prefix.length))) as Partial<ShapeGeneric>)
+      this.apply(await decodeDataAsync(decodeComponent(fragment.slice(prefix.length))))
       this.consumedFragment = true
     }
     return this
@@ -117,7 +131,7 @@ export default class State<ShapeGeneric extends object = PermalinkState> {
       const [rawKey, rawValue = ''] = splitOnce(entry, '=')
       const key = decodeComponent(rawKey, true)
       if (packedKey !== false && key === packedKey) {
-        this.apply(decodeData(decodeComponent(rawValue)) as Partial<ShapeGeneric>)
+        this.apply(decodeData(decodeComponent(rawValue)))
       } else {
         this.set(key, decodeComponent(rawValue, true))
       }
@@ -141,7 +155,7 @@ export default class State<ShapeGeneric extends object = PermalinkState> {
       const [rawKey, rawValue = ''] = splitOnce(entry, '=')
       const key = decodeComponent(rawKey, true)
       if (packedKey !== false && key === packedKey) {
-        this.apply(await decodeDataAsync(decodeComponent(rawValue)) as Partial<ShapeGeneric>)
+        this.apply(await decodeDataAsync(decodeComponent(rawValue)))
       } else {
         this.set(key, decodeComponent(rawValue, true))
       }
@@ -167,7 +181,8 @@ export default class State<ShapeGeneric extends object = PermalinkState> {
   }
 
   private set(key: string, value: unknown) {
-    Object.defineProperty(this.value, key, {
+    this.processed = undefined
+    Object.defineProperty(this.raw, key, {
       configurable: true,
       enumerable: true,
       value,

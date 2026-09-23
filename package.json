@@ -27,7 +27,8 @@
     "decode-brotli": "0.1.0",
     "decode-zstd": "0.1.0",
     "fflate": "0.8.3",
-    "from-base64": "0.1.0"
+    "from-base64": "0.1.0",
+    "optis": "0.3.0"
   },
   "devDependencies": {
     "eslint": "10.11.0",
