@@ -1,4 +1,4 @@
-- asynchronous native-first permalink parsing by default, with an opt-in synchronous mode
+- synchronous permalink parsing by default, with an opt-in asynchronous native-first mode
 - one `readPermalink` API whose return type follows the `sync` and `format` options
 - Optis runtime schemas with defaults, required keys, normalizations and inferred result types
 - strict `parseBoolean` and finite `parseNumber` helpers for URL normalization

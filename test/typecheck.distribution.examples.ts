@@ -12,15 +12,11 @@ const schema = optis({
     enabled: parseBoolean,
   },
 })
-const syncPlain = readPermalink('?count=1&enabled=false', {
-  schema,
-  sync: true,
-})
+const syncPlain = readPermalink('?count=1&enabled=false', {schema})
 const count: number | undefined = syncPlain.count
 const enabled: boolean = syncPlain.enabled
 const syncState = readPermalink('?count=1', {
   schema,
-  sync: true,
   format: 'state',
 })
 const state: State<typeof schema> = syncState
@@ -28,10 +24,14 @@ const stateCount: number | undefined = state.value.count
 const asyncPlain: Promise<{
   count?: number
   enabled: boolean
-}> = readPermalink('?count=1', {schema})
+}> = readPermalink('?count=1', {
+  schema,
+  sync: false,
+})
 const asyncState: Promise<State<typeof schema>> = readPermalink('?count=1', {
   schema,
   format: 'state',
+  sync: false,
 })
 const reusableOptions = {
   schema,

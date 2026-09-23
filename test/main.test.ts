@@ -37,8 +37,8 @@ test('State applies patches, queries and fragments', () => {
   expect(Object.getPrototypeOf(state.value)).toBe(Object.prototype)
 })
 test('sync option controls the return type and runtime mode', async () => {
-  const syncResult: Record<string, unknown> = readPermalink('https://example.com?a=1', {sync: true})
-  const asyncResult: Promise<Record<string, unknown>> = readPermalink('https://example.com?a=1')
+  const syncResult: Record<string, unknown> = readPermalink('https://example.com?a=1')
+  const asyncResult: Promise<Record<string, unknown>> = readPermalink('https://example.com?a=1', {sync: false})
   expect(syncResult).toEqual({a: '1'})
   expect(syncResult instanceof Promise).toBeFalse()
   expect(asyncResult).toBeInstanceOf(Promise)
@@ -47,10 +47,10 @@ test('sync option controls the return type and runtime mode', async () => {
 test('format option controls plain versus State results', async () => {
   const syncState = readPermalink('https://example.com?a=1', {
     format: 'state',
-    sync: true,
   })
   const asyncState = await readPermalink('https://example.com?a=1', {
     format: 'state',
+    sync: false,
   })
   expect(syncState).toBeInstanceOf(State)
   expect(syncState.value).toEqual({a: '1'})
@@ -58,10 +58,10 @@ test('format option controls plain versus State results', async () => {
   expect(asyncState.value).toEqual({a: '1'})
   expect(readPermalink('https://example.com?a=1', {
     format: 'plain',
-    sync: true,
   })).toEqual({a: '1'})
   expect(await readPermalink('https://example.com?a=1', {
     format: 'plain',
+    sync: false,
   })).toEqual({a: '1'})
 })
 test('State tracks literal and consumed input', () => {
@@ -118,7 +118,10 @@ test('supports custom packed-state keys', async () => {
     ...sourceOptions,
     sync: true,
   })).toEqual(expected)
-  expect(await readPermalink(url, sourceOptions)).toEqual(expected)
+  expect(await readPermalink(url, {
+    ...sourceOptions,
+    sync: false,
+  })).toEqual(expected)
 })
 test('can disable packed-state query and fragment handling', async () => {
   const fragmentPayload = encode({ignored: true})
@@ -135,7 +138,10 @@ test('can disable packed-state query and fragment handling', async () => {
     ...sourceOptions,
     sync: true,
   })).toEqual(expected)
-  expect(await readPermalink(url, sourceOptions)).toEqual(expected)
+  expect(await readPermalink(url, {
+    ...sourceOptions,
+    sync: false,
+  })).toEqual(expected)
 })
 test('reads named query parameters as strings synchronously', () => {
   expect(readPermalink('https://example.com?a=1&b=hello+world&empty=', {sync: true})).toEqual({
@@ -150,7 +156,7 @@ test('reads an unprefixed JSON Base64 data payload synchronously', () => {
     enabled: true,
     nested: {value: 'x'},
   })
-  expect(readPermalink(`https://example.com?data=${payload}`, {sync: true})).toEqual({
+  expect(readPermalink(`https://example.com?data=${payload}`)).toEqual({
     a: 1,
     enabled: true,
     nested: {value: 'x'},
@@ -192,15 +198,15 @@ test('synchronously decodes zstd payloads', () => {
     format: 'zstd',
   })
 })
-test('default async mode decodes compressed payloads', async () => {
+test('explicit async mode decodes compressed payloads', async () => {
   const brotliPayload = encodeBytes(brotliCompressSync(Buffer.from(JSON.stringify({format: 'brotli'}))))
   const gzipPayload = encodeBytes(gzipSync(Buffer.from(JSON.stringify({format: 'gzip'}))))
   const zstdPayload = encodeBytes(Bun.zstdCompressSync(Buffer.from(JSON.stringify({format: 'zstd'}))))
-  expect(await readPermalink(`https://example.com?data=j;br;base64=${brotliPayload}`)).toEqual({format: 'brotli'})
-  expect(await readPermalink(`https://example.com?data=j;gz;base64=${gzipPayload}`)).toEqual({format: 'gzip'})
-  expect(await readPermalink(`https://example.com?data=j;zstd;base64=${zstdPayload}`)).toEqual({format: 'zstd'})
+  expect(await readPermalink(`https://example.com?data=j;br;base64=${brotliPayload}`, {sync: false})).toEqual({format: 'brotli'})
+  expect(await readPermalink(`https://example.com?data=j;gz;base64=${gzipPayload}`, {sync: false})).toEqual({format: 'gzip'})
+  expect(await readPermalink(`https://example.com?data=j;zstd;base64=${zstdPayload}`, {sync: false})).toEqual({format: 'zstd'})
 })
-test('default async mode falls back to synchronous decoders when native decompression fails', async () => {
+test('explicit async mode falls back to synchronous decoders when native decompression fails', async () => {
   const brotliPayload = encodeBytes(brotliCompressSync(Buffer.from(JSON.stringify({fallback: 'brotli'}))))
   const gzipPayload = encodeBytes(gzipSync(Buffer.from(JSON.stringify({fallback: 'gzip'}))))
   const zstdPayload = encodeBytes(Bun.zstdCompressSync(Buffer.from(JSON.stringify({fallback: 'zstd'}))))
@@ -214,9 +220,9 @@ test('default async mode falls back to synchronous decoders when native decompre
     },
   })
   try {
-    expect(await readPermalink(`https://example.com?data=j;br;base64=${brotliPayload}`)).toEqual({fallback: 'brotli'})
-    expect(await readPermalink(`https://example.com?data=j;gz;base64=${gzipPayload}`)).toEqual({fallback: 'gzip'})
-    expect(await readPermalink(`https://example.com?data=j;zstd;base64=${zstdPayload}`)).toEqual({fallback: 'zstd'})
+    expect(await readPermalink(`https://example.com?data=j;br;base64=${brotliPayload}`, {sync: false})).toEqual({fallback: 'brotli'})
+    expect(await readPermalink(`https://example.com?data=j;gz;base64=${gzipPayload}`, {sync: false})).toEqual({fallback: 'gzip'})
+    expect(await readPermalink(`https://example.com?data=j;zstd;base64=${zstdPayload}`, {sync: false})).toEqual({fallback: 'zstd'})
   } finally {
     if (nativeDecompressionStream) {
       Object.defineProperty(globalThis, 'DecompressionStream', nativeDecompressionStream)

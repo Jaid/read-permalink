@@ -9,7 +9,7 @@ read URL search parameters and packed state from permalinks
 ```ts
 import readPermalink from 'read-permalink'
 
-const state = await readPermalink('?tab=details&data=eyJzZXR0aW5ncyI6eyJ0aGVtZSI6ImRhcmsifX0')
+const state = readPermalink('?tab=details&data=eyJzZXR0aW5ncyI6eyJ0aGVtZSI6ImRhcmsifX0')
 
 // {tab: 'details', settings: {theme: 'dark'}}
 console.log(state)
@@ -17,7 +17,7 @@ console.log(state)
 
 ## features
 
-- asynchronous native-first permalink parsing by default, with an opt-in synchronous mode
+- synchronous permalink parsing by default, with an opt-in asynchronous native-first mode
 - one `readPermalink` API whose return type follows the `sync` and `format` options
 - Optis runtime schemas with defaults, required keys, normalizations and inferred result types
 - strict `parseBoolean` and finite `parseNumber` helpers for URL normalization
@@ -40,11 +40,11 @@ npm install --save read-permalink
 
 `readPermalink(url, options?)` reads ordinary query parameters from left to right, decodes packed state at the configured query key and applies packed fragment state last.
 
-By default it uses the asynchronous native-first decompression path and returns a plain object through a `Promise`. Pass `{sync: true}` to use the synchronous JavaScript decoders.
+By default it uses the synchronous JavaScript decoders and returns the result directly. Pass `{sync: false}` to use the asynchronous native-first decompression path.
 
 ```ts
-const asyncState = await readPermalink(url)
-const syncState = readPermalink(url, {sync: true})
+const syncState = readPermalink(url)
+const asyncState = await readPermalink(url, {sync: false})
 ```
 
 The TypeScript return type follows `sync` and `format`, so literal options produce the matching result without overload-order dependence.
@@ -61,7 +61,6 @@ The second parameter configures the Optis schema, packed-state sources, executio
 readPermalink(url, {
   query: 'state',
   fragment: 'state',
-  sync: true,
   format: 'state',
 })
 ```
@@ -74,10 +73,10 @@ readPermalink(url, {
 
 Disabling query packed-state decoding does not disable ordinary query parameters. For example, with `{query: false}`, `?data=hello&a=1` produces `{data: 'hello', a: '1'}`.
 
-`sync` accepts `boolean` and defaults to `false`:
+`sync` accepts `boolean` and defaults to `true`:
 
-- `false` or omitted → asynchronous native-first decompression and a `Promise`
-- `true` → synchronous JavaScript decompression and a direct result
+- `true` or omitted → synchronous JavaScript decompression and a direct result
+- `false` → asynchronous native-first decompression and a `Promise`
 
 `format` is either `plain` or `state` and defaults to `plain`:
 
@@ -88,20 +87,20 @@ With an Optis `schema`, the result type is inferred as `optis.Processed<typeof s
 
 ```ts
 const a = readPermalink(url, {schema})
-// Promise<optis.Processed<typeof schema>>
-
-const b = readPermalink(url, {schema, sync: true})
 // optis.Processed<typeof schema>
 
+const b = readPermalink(url, {schema, sync: false})
+// Promise<optis.Processed<typeof schema>>
+
 const c = readPermalink(url, {schema, format: 'state'})
-// Promise<State<typeof schema>>
+// State<typeof schema>
 
 const d = readPermalink(url, {
   schema,
   format: 'state',
-  sync: true,
+  sync: false,
 })
-// State<typeof schema>
+// Promise<State<typeof schema>>
 ```
 
 ### runtime schema
@@ -123,7 +122,7 @@ const schema = optis({
   },
 })
 
-const result = await readPermalink('?page=3&enabled=false', {schema})
+const result = readPermalink('?page=3&enabled=false', {schema})
 // Inferred as {page: number, enabled: boolean}.
 console.log(result)
 // {page: 3, enabled: false}
@@ -164,14 +163,13 @@ Without a schema, `new State()` retains its existing raw, live-object behavior.
 
 `apply(patch)` safely merges an object into the current value. `applyQuery(search, option?)` applies ordinary query parameters and packed-state entries from left to right. `applyFragment(hash, option?)` applies a packed-state fragment. The source option uses the same `string | boolean` semantics as the top-level function. The methods return the same `State` instance for chaining.
 
-`applyQueryAsync()` and `applyFragmentAsync()` provide the native-first asynchronous decompression path used when `sync` is not enabled.
+`applyQueryAsync()` and `applyFragmentAsync()` provide the native-first asynchronous decompression path used by `readPermalink(..., {sync: false})`.
 
 When a `State` comes from `readPermalink(..., {format: 'state'})`, it also retains the literal input:
 
 ```ts
 const state = readPermalink(url, {
   format: 'state',
-  sync: true,
 })
 
 state.getInput()
@@ -185,7 +183,7 @@ state.getConsumedInput()
 In a browser, request `format: 'state'`, consume the values you need, then replace the current history entry with the remaining input to discard the values that were handled without reloading the page:
 
 ```ts
-const state = await readPermalink(window.location.href, {
+const state = readPermalink(window.location.href, {
   schema,
   format: 'state',
 })

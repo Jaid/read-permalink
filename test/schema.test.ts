@@ -47,19 +47,19 @@ test('URL normalization helpers use strict boolean and finite-number semantics',
 })
 test('infers normalized values in every return mode', async () => {
   const input = '?count=42&enabled=false&label=hello'
-  const sync = readPermalink(input, {
+  const sync = readPermalink(input, {schema})
+  const async = readPermalink(input, {
     schema,
-    sync: true,
+    sync: false,
   })
-  const async = readPermalink(input, {schema})
   const syncState = readPermalink(input, {
     schema,
-    sync: true,
     format: 'state',
   })
   const asyncState = readPermalink(input, {
     schema,
     format: 'state',
+    sync: false,
   })
   expectTypeOf(sync).toEqualTypeOf<Result>()
   expectTypeOf(async).toEqualTypeOf<Promise<Result>>()
@@ -103,7 +103,10 @@ test('applies defaults on empty input and preserves unknown keys', async () => {
     count: 1,
     enabled: false,
   })
-  expect<Record<string, unknown>>(await readPermalink('?extra=value', {schema})).toEqual({
+  expect<Record<string, unknown>>(await readPermalink('?extra=value', {
+    schema,
+    sync: false,
+  })).toEqual({
     count: 1,
     enabled: false,
     extra: 'value',
@@ -143,7 +146,10 @@ test('required keys can come from a fragment or defaults', async () => {
     label: 'test',
     count: 7,
   })
-  expect<Record<string, unknown>>(await readPermalink(input, {schema: required})).toEqual({
+  expect<Record<string, unknown>>(await readPermalink(input, {
+    schema: required,
+    sync: false,
+  })).toEqual({
     label: 'test',
     count: 7,
   })
@@ -161,6 +167,7 @@ test('required keys can come from a fragment or defaults', async () => {
     expect(readPermalink('', {
       schema: required,
       format,
+      sync: false,
     })).rejects.toBeInstanceOf(RequiredOptionsError)
     expect(() => readPermalink('?count=no', {
       schema,
@@ -170,6 +177,7 @@ test('required keys can come from a fragment or defaults', async () => {
     expect(readPermalink('?count=no', {
       schema,
       format,
+      sync: false,
     })).rejects.toThrow('Expected a finite number.')
   }
 })
@@ -211,7 +219,7 @@ test('incremental State processing is lazy and never compounds normalizations', 
 })
 test('State returned from readPermalink retains schema and input tracking', async () => {
   const input = `?count=2#data:j=${encode({enabled: 'true'})}`
-  const state = await readPermalink(input, {
+  const state = readPermalink(input, {
     schema,
     format: 'state',
   })
@@ -225,7 +233,7 @@ test('State returned from readPermalink retains schema and input tracking', asyn
 })
 test('schemas respect custom and disabled packed-state sources', async () => {
   const input = `?packed=${encode({count: '5'})}#packed:j=${encode({count: '6'})}`
-  expect(await readPermalink(input, {
+  expect(readPermalink(input, {
     schema,
     query: 'packed',
     fragment: 'packed',
@@ -233,7 +241,7 @@ test('schemas respect custom and disabled packed-state sources', async () => {
     count: 6,
     enabled: false,
   })
-  expect<Record<string, unknown>>(await readPermalink('?data=literal&count=3#data:invalid', {
+  expect<Record<string, unknown>>(readPermalink('?data=literal&count=3#data:invalid', {
     schema,
     query: false,
     fragment: false,
@@ -301,7 +309,10 @@ test('preserves normalization errors and allows correcting failed State processi
   } catch (error_) {
     expect(error_).toBe(error)
   }
-  const caught = await readPermalink('?count=invalid', {schema: validatingSchema}).catch((error_: unknown) => error_)
+  const caught = await readPermalink('?count=invalid', {
+    schema: validatingSchema,
+    sync: false,
+  }).catch((error_: unknown) => error_)
   expect(caught).toBe(error)
   const state = new State('', validatingSchema)
   state.applyQuery('?count=invalid')

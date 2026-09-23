@@ -39,10 +39,10 @@ type ReadPermalinkResult<
   SchemaGeneric extends OptisSchema | undefined,
   SyncGeneric extends boolean | undefined,
   FormatGeneric extends ResultFormat | undefined,
-> = SyncGeneric extends true
-  ? ReadPermalinkFormattedResult<SchemaGeneric, FormatGeneric>
-  : SyncGeneric extends false | undefined
-    ? Promise<ReadPermalinkFormattedResult<SchemaGeneric, FormatGeneric>>
+> = SyncGeneric extends false
+  ? Promise<ReadPermalinkFormattedResult<SchemaGeneric, FormatGeneric>>
+  : SyncGeneric extends true | undefined
+    ? ReadPermalinkFormattedResult<SchemaGeneric, FormatGeneric>
     : Promise<ReadPermalinkFormattedResult<SchemaGeneric, FormatGeneric>> | ReadPermalinkFormattedResult<SchemaGeneric, FormatGeneric>
 type ResolvedInput = {
   literal: string
@@ -85,15 +85,15 @@ function readPermalink<
 ): ReadPermalinkResult<SchemaGeneric, SyncGeneric, FormatGeneric> {
   const resolvedInput = resolveInput(input)
   const state = new State<SchemaGeneric>(resolvedInput.literal, options?.schema)
-  if (options?.sync) {
-    state.applyQuery(resolvedInput.url.search, options.query ?? true)
-    state.applyFragment(resolvedInput.url.hash, options.fragment ?? true)
-    return formatState(state, options.format) as ReadPermalinkResult<SchemaGeneric, SyncGeneric, FormatGeneric>
+  if (options?.sync !== false) {
+    state.applyQuery(resolvedInput.url.search, options?.query ?? true)
+    state.applyFragment(resolvedInput.url.hash, options?.fragment ?? true)
+    return formatState(state, options?.format) as ReadPermalinkResult<SchemaGeneric, SyncGeneric, FormatGeneric>
   }
   return (async () => {
-    await state.applyQueryAsync(resolvedInput.url.search, options?.query ?? true)
-    await state.applyFragmentAsync(resolvedInput.url.hash, options?.fragment ?? true)
-    return formatState(state, options?.format)
+    await state.applyQueryAsync(resolvedInput.url.search, options.query ?? true)
+    await state.applyFragmentAsync(resolvedInput.url.hash, options.fragment ?? true)
+    return formatState(state, options.format)
   })() as ReadPermalinkResult<SchemaGeneric, SyncGeneric, FormatGeneric>
 }
 
