@@ -1,9 +1,8 @@
 import type {ReadPermalinkOptions, State} from 'read-permalink'
 
-import optis from 'optis'
 import readPermalink, {parseBoolean, parseNumber} from 'read-permalink'
 
-const schema = optis({
+const schema = {
   defaults: {
     enabled: false,
   },
@@ -11,7 +10,7 @@ const schema = optis({
     count: parseNumber,
     enabled: parseBoolean,
   },
-})
+}
 const syncPlain = readPermalink('?count=1&enabled=false', {schema})
 const count: number | undefined = syncPlain.count
 const enabled: boolean = syncPlain.enabled

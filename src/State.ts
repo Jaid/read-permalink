@@ -1,10 +1,21 @@
 import type {OptisProcessed, OptisSchema} from 'optis'
 
+import optis from 'optis'
+
 import getEngines, {isEngineDescriptor} from './getEngines.ts'
 
 export type PermalinkState = Record<string, unknown>
-export type StateValue<SchemaGeneric extends OptisSchema | undefined> = SchemaGeneric extends OptisSchema ? OptisProcessed<SchemaGeneric> : PermalinkState
+export type StateSchemaInput = OptisFactoryInput | OptisSchema
+export type StateValue<SchemaGeneric extends StateSchemaInput | undefined> = ResolvedSchema<SchemaGeneric> extends infer ResolvedSchemaGeneric extends OptisSchema
+  ? OptisProcessed<ResolvedSchemaGeneric>
+  : PermalinkState
 export type StateSourceOption = boolean | string
+type OptisFactoryInput = Parameters<typeof optis>[0]
+type ResolvedSchema<SchemaGeneric extends StateSchemaInput | undefined> = SchemaGeneric extends OptisSchema
+  ? SchemaGeneric
+  : SchemaGeneric extends OptisFactoryInput
+    ? ReturnType<typeof optis<SchemaGeneric>>
+    : undefined
 type StatePatch = PermalinkState
 
 const decodeComponent = (value: string, plusAsSpace = false) => {
@@ -60,18 +71,26 @@ const removeQuery = (input: string) => {
   const queryIndex = beforeFragment.indexOf('?')
   return queryIndex === -1 ? input : beforeFragment.slice(0, queryIndex) + fragment
 }
+const optisSchemaMethodNames = ['check', 'extend', 'extendTyped', 'process', 'processMap'] as const
+const isOptisSchema = (value: StateSchemaInput): value is OptisSchema => optisSchemaMethodNames.every(methodName => typeof (value as OptisSchema)[methodName] === 'function')
+const resolveSchema = (schema: StateSchemaInput | undefined) => {
+  if (schema === undefined) {
+    return
+  }
+  return isOptisSchema(schema) ? schema : optis(schema)
+}
 
-export default class State<SchemaGeneric extends OptisSchema | undefined = undefined> {
+export default class State<SchemaGeneric extends StateSchemaInput | undefined = undefined> {
   private consumedFragment = false
   private consumedQuery = false
   private readonly input: string
   private processed: StateValue<SchemaGeneric> | undefined
   private readonly raw: PermalinkState = {}
-  private readonly schema: SchemaGeneric | undefined
+  private readonly schema: OptisSchema | undefined
 
   constructor(input = '', schema?: SchemaGeneric) {
     this.input = input
-    this.schema = schema
+    this.schema = resolveSchema(schema)
   }
 
   get value(): StateValue<SchemaGeneric> {

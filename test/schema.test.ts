@@ -11,7 +11,7 @@ const encode = (value: unknown) => encoder.encode(JSON.stringify(value)).toBase6
   alphabet: 'base64url',
   omitPadding: true,
 })
-const schema = optis({
+const schemaInput = {
   defaults: {
     count: 1,
     enabled: false,
@@ -21,7 +21,8 @@ const schema = optis({
     enabled: parseBoolean,
     label: String,
   },
-})
+}
+const schema = optis(schemaInput)
 type Result = {
   count: number
   enabled: boolean
@@ -76,6 +77,29 @@ test('infers normalized values in every return mode', async () => {
   expect(syncState.value).toEqual(expected)
   const resolvedState = await asyncState
   expect(resolvedState.value).toEqual(expected)
+})
+test('accepts Optis factory input directly', async () => {
+  const input = '?count=42&enabled=false&label=hello'
+  const sync = readPermalink(input, {schema: schemaInput})
+  const async = readPermalink(input, {
+    schema: schemaInput,
+    sync: false,
+  })
+  const state = readPermalink(input, {
+    schema: schemaInput,
+    format: 'state',
+  })
+  expectTypeOf(sync).toEqualTypeOf<Result>()
+  expectTypeOf(async).toEqualTypeOf<Promise<Result>>()
+  expectTypeOf(state).toEqualTypeOf<State<typeof schemaInput>>()
+  const expected = {
+    count: 42,
+    enabled: false,
+    label: 'hello',
+  }
+  expect(sync).toEqual(expected)
+  expect(await async).toEqual(expected)
+  expect(state.value).toEqual(expected)
 })
 test('supports reusable options and dynamic return modes', async () => {
   const options = {

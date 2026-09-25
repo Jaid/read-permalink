@@ -19,7 +19,7 @@ console.log(state)
 
 - synchronous permalink parsing by default, with an opt-in asynchronous native-first mode
 - one `readPermalink` API whose return type follows the `sync` and `format` options
-- Optis runtime schemas with defaults, required keys, normalizations and inferred result types
+- Optis setup objects or runtime schemas with defaults, required keys, normalizations and inferred result types
 - strict `parseBoolean` and finite `parseNumber` helpers for URL normalization
 - optional schema-aware `State` results for incremental state manipulation
 - reads ordinary query parameters and packed permalink state into one plain object
@@ -83,7 +83,7 @@ Disabling query packed-state decoding does not disable ordinary query parameters
 - `plain` → return the decoded object directly
 - `state` → return the `State` instance containing that object in `value`
 
-With an Optis `schema`, the result type is inferred as `optis.Processed<typeof schema>`. This gives four precise return modes:
+With an Optis setup object or schema instance, the processed result type is inferred automatically. This gives four precise return modes:
 
 ```ts
 const a = readPermalink(url, {schema})
@@ -105,13 +105,12 @@ const d = readPermalink(url, {
 
 ### runtime schema
 
-Add `optis` as a direct dependency when constructing schemas in your application. Pass an [Optis](https://npmjs.com/package/optis) instance as `schema` to apply defaults, check required keys and normalize values at runtime. No explicit result-type argument is needed:
+Pass the same object you would normally give to the first parameter of [Optis](https://npmjs.com/package/optis) directly as `schema`. `read-permalink` creates the Optis schema internally, so consumers do not need to import `optis` just to define permalink state:
 
 ```ts
-import optis from 'optis'
 import readPermalink, {parseBoolean, parseNumber} from 'read-permalink'
 
-const schema = optis({
+const schema = {
   defaults: {
     page: 1,
     enabled: false,
@@ -120,13 +119,15 @@ const schema = optis({
     page: parseNumber,
     enabled: parseBoolean,
   },
-})
+}
 
 const result = readPermalink('?page=3&enabled=false', {schema})
 // Inferred as {page: number, enabled: boolean}.
 console.log(result)
 // {page: 3, enabled: false}
 ```
+
+Existing Optis schema instances are still accepted. Import `optis` only when you need its schema composition APIs such as `extend()` or want to share a prebuilt schema with other code.
 
 Optis processes the final merged object, not each query entry independently. Query entries still merge from left to right and a matching fragment still wins. This lets required keys come from any source and prevents defaults or intermediate invalid values from interfering with precedence. Normalizations also receive values decoded from packed state, which may already be numbers, booleans or objects. Write normalizers that accept `unknown` and handle the input types you allow.
 
@@ -140,16 +141,15 @@ For reusable options, use `satisfies ReadPermalinkOptions<typeof schema>` to che
 
 ### State
 
-`State` provides the same merge mechanics for incremental use. Pass a schema as the second constructor argument to infer the processed `value` type:
+`State` provides the same merge mechanics for incremental use. Pass either an Optis setup object or an existing schema as the second constructor argument to infer the processed `value` type:
 
 ```ts
-import optis from 'optis'
 import {parseNumber, State} from 'read-permalink'
 
-const schema = optis({
+const schema = {
   defaults: {count: 0},
   normalizations: {count: parseNumber},
-})
+}
 const state = new State('', schema)
 
 state.applyQuery('?count=42')

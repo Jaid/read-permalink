@@ -1,12 +1,11 @@
-import type {StateSourceOption, StateValue} from './State.ts'
-import type {OptisSchema} from 'optis'
+import type {StateSchemaInput, StateSourceOption, StateValue} from './State.ts'
 
 import State from './State.ts'
 
-export type ReadPermalinkOptions<SchemaGeneric extends OptisSchema | undefined = undefined> = ReadPermalinkBaseOptions & {
+export type ReadPermalinkOptions<SchemaGeneric extends StateSchemaInput | undefined = undefined> = ReadPermalinkBaseOptions & {
   format?: ResultFormat
   sync?: boolean
-} & (SchemaGeneric extends OptisSchema ? {
+} & (SchemaGeneric extends StateSchemaInput ? {
   /** Processes the final merged URL state with Optis defaults, required keys and normalizations. */
   schema: SchemaGeneric
 } : {
@@ -19,7 +18,7 @@ type ReadPermalinkBaseOptions = {
   query?: StateSourceOption
 }
 type ReadPermalinkCallOptions<
-  SchemaGeneric extends OptisSchema | undefined,
+  SchemaGeneric extends StateSchemaInput | undefined,
   SyncGeneric extends boolean | undefined,
   FormatGeneric extends ResultFormat | undefined,
 > = ReadPermalinkBaseOptions & {
@@ -28,7 +27,7 @@ type ReadPermalinkCallOptions<
   sync?: SyncGeneric
 }
 type ReadPermalinkFormattedResult<
-  SchemaGeneric extends OptisSchema | undefined,
+  SchemaGeneric extends StateSchemaInput | undefined,
   FormatGeneric extends ResultFormat | undefined,
 > = FormatGeneric extends 'state'
   ? State<SchemaGeneric>
@@ -36,7 +35,7 @@ type ReadPermalinkFormattedResult<
     ? StateValue<SchemaGeneric>
     : State<SchemaGeneric> | StateValue<SchemaGeneric>
 type ReadPermalinkResult<
-  SchemaGeneric extends OptisSchema | undefined,
+  SchemaGeneric extends StateSchemaInput | undefined,
   SyncGeneric extends boolean | undefined,
   FormatGeneric extends ResultFormat | undefined,
 > = SyncGeneric extends false
@@ -71,14 +70,14 @@ const resolveInput = (input?: Input): ResolvedInput => {
     url: new URL(input, browserLocation?.href ?? 'http://localhost'),
   }
 }
-const formatState = <SchemaGeneric extends OptisSchema | undefined>(state: State<SchemaGeneric>, format: ResultFormat | undefined) => {
+const formatState = <SchemaGeneric extends StateSchemaInput | undefined>(state: State<SchemaGeneric>, format: ResultFormat | undefined) => {
   const value = state.value
   return format === 'state' ? state : value
 }
 function readPermalink<
   const SyncGeneric extends boolean | undefined = undefined,
   const FormatGeneric extends ResultFormat | undefined = undefined,
-  SchemaGeneric extends OptisSchema | undefined = undefined,
+  SchemaGeneric extends StateSchemaInput | undefined = undefined,
 >(
   input?: Input,
   options?: ReadPermalinkCallOptions<SchemaGeneric, SyncGeneric, FormatGeneric>,
@@ -102,3 +101,4 @@ export default readPermalink
 export {parseBoolean, parseNumber} from './parsers.ts'
 
 export {default as State} from './State.ts'
+export type {StateSchemaInput} from './State.ts'
